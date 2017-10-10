@@ -1,0 +1,66 @@
+Trigger Useful Example: 
+/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/
+trigger CaseTrigger on Case (before insert, before update) {
+
+
+private static boolean firstRun = true;
+caseTriggerHandler handler = new caseTriggerHandler();
+system.debug('Trigger fired!');
+try{
+    if(firstRun){
+        firstRun = false;
+        handler.execute();
+    }
+    }catch(exception e){
+        system.debug('Error during campaignMemberTrigger: '+e.getMessage());
+        for(Case cs :(List<Case>)Trigger.new){
+
+        cs.addError('Unable to process transaction, please try again or contact your administrator if you need assistance ');
+    }
+}}
+
+/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/
+
+public with sharing class CaseTriggerHandler extends triggerHandler{
+
+    public override void beforeInsert(){
+
+        relatedContactInfo.caseChanges(trigger.new);
+
+    }
+public override void beforeUpdate(){
+    identifyPSM.populatePSMSourcer();
+    relatedContactInfo.caseUpdate((Map<Id,Case>)trigger.oldMap,(Map<Id,Case>)trigger.newMap,(List<Case>)trigger.new);
+}}
+
+/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/
+
+public class identifyPSM {
+
+
+public static void populatePSMSourcer(){
+    system.debug('Looking for PSM');
+    Set<id> psms = new set<Id>();
+    //get list for all current PSMs
+    for(User u : [SELECT id FROM user WHERE user.UserRole.name ='PSM Sourcer' AND user.isActive = true]){
+        system.debug('Adding PSMs to the list');
+        psms.add(u.id);
+    }
+
+    //get ID of CSM SB recordType
+    Id rt = [SELECT id FROM recordType WHERE name = 'CSM SB'].id;
+    //loop through all cases.  If they're a CSM SB case and are being edited
+    //by a psm sourcer then the psm sourcer's name should be updated to
+    //the psm sourcer field on the case
+    for(case cs : (List<Case>)trigger.new){
+        if (cs.recordType.id == rt && psms.contains(UserInfo.getUserId())){
+            system.debug('Found PSM');
+            cs.PSM_Sourcer__c = userInfo.getName();
+        }else{
+            system.debug('PSM not found!');
+            system.debug('User Name: '+userInfo.getName());
+            system.debug('User Id: '+userInfo.getUserId());
+        }
+    }
+}}
+/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/<>/
